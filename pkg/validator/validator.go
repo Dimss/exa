@@ -5,14 +5,10 @@ import (
 	"github.com/Dimss/exa/pkg/options"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	authv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"net/http"
 	"sync"
 )
-
-const tracerName = "validator"
 
 type validator interface {
 	isValid(context.Context) bool
@@ -31,21 +27,17 @@ type AuthContext struct {
 }
 
 func (ac *AuthContext) Valid(ctx context.Context) (bool, []*corev3.HeaderValueOption) {
-	span := trace.SpanFromContext(ctx)
-
-	if ac.request.Attributes.Request.Http.Method == http.MethodOptions {
-		span.AddEvent("skipping auth, method is OPTIONS")
-		return true, nil
-	}
 
 	var validators []validator
+
+	if ac.skipAuthRoute() {
+		return true, nil
+	}
 
 	if ac.opts.OAuth2ValidatorEnabled() {
 		validators = append(validators, NewOAuth2Validator(
 			ac.opts.AuthCookie,
 			ac.opts.AuthHeader,
-			ac.opts.Oauth2TokenIssuer,
-			ac.opts.Oauth2ClaimsValidate,
 			ac.opts.JwksServers,
 			ac.request.Attributes.Request.Http.Headers,
 			ac.Log,
@@ -94,6 +86,10 @@ func (ac *AuthContext) Valid(ctx context.Context) (bool, []*corev3.HeaderValueOp
 			return false, nil
 		}
 	}
+}
+
+func (ac *AuthContext) skipAuthRoute() bool {
+	return ac.request.Attributes.Request.Http.Path == "/dex-login" // TODO(dimss): fix this!
 }
 
 func NewAuthContext(r *authv3.CheckRequest, opts *options.Options) *AuthContext {

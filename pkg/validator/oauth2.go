@@ -5,47 +5,36 @@ import (
 	"github.com/MicahParks/keyfunc"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"github.com/golang-jwt/jwt/v4"
-	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"strings"
 	"sync"
 )
 
 type OAuth2Validator struct {
-	authCookieName   string
-	authHeaderName   string
-	claims           jwt.MapClaims
-	claimsToValidate []string
-	jwksServers      []*keyfunc.JWKS
-	issuer           string
-	log              *zap.Logger
-	rawIdentityData  []byte
-	requestHeaders   map[string]string
+	authCookieName  string
+	authHeaderName  string
+	jwksServers     []*keyfunc.JWKS
+	log             *zap.Logger
+	claims          jwt.MapClaims
+	rawIdentityData []byte
+	requestHeaders  map[string]string
 }
 
-const (
-	TokenSigningAlgorithm = "RS256"
-	TokenAlgorithmClaim   = "alg"
-	TokenIssuerClaim      = "iss"
-)
-
 func NewOAuth2Validator(
-	authCookieName, authHeaderName, issuer string,
-	claimsToValidate []string,
+	authCookieName string,
+	authHeaderName string,
 	jwksServers []*keyfunc.JWKS,
 	requestHeaders map[string]string,
 	log *zap.Logger) *OAuth2Validator {
 
 	return &OAuth2Validator{
-		authCookieName:   authCookieName,
-		authHeaderName:   authHeaderName,
-		claimsToValidate: claimsToValidate,
-		jwksServers:      jwksServers,
-		issuer:           issuer,
-		log:              log,
-		requestHeaders:   requestHeaders,
+		authCookieName: authCookieName,
+		authHeaderName: authHeaderName,
+		jwksServers:    jwksServers,
+		log:            log,
+		requestHeaders: requestHeaders,
+		claims:         jwt.MapClaims{},
 	}
 }
 
@@ -60,8 +49,6 @@ func (v *OAuth2Validator) shouldValidate() bool {
 }
 
 func (v *OAuth2Validator) isValid(ctx context.Context) bool {
-	ctx, span := otel.Tracer(tracerName).Start(ctx, "oauth2-validator")
-	defer span.End()
 
 	if !v.shouldValidate() {
 		v.log.Info("not OAuth2 based authentication, aborting")
@@ -80,29 +67,16 @@ func (v *OAuth2Validator) isValid(ctx context.Context) bool {
 
 			defer wg.Done()
 
-			token, err := jwt.Parse(b64JwtToken, jwks.Keyfunc)
+			token, err := jwt.ParseWithClaims(b64JwtToken, v.claims, jwks.Keyfunc)
 			if err != nil {
-				v.log.Info("failed to parse the JWT", zap.Error(err))
+				v.log.Info("not valid token", zap.Error(err))
 				return
 			}
 
-			if token.Valid {
-				if claims, ok := token.Claims.(jwt.MapClaims); ok {
-					v.claims = claims
-				} else {
-					v.log.Error("failed to get claims from token", zap.Error(err))
-					return
-				}
-			}
-
-			if token.Header[TokenAlgorithmClaim] != TokenSigningAlgorithm {
-				v.log.Error("token signing algorithm is wrong")
+			if !token.Valid {
+				v.log.Error("failed to get claims from token", zap.Error(err))
 				return
-			}
 
-			if v.claims[TokenIssuerClaim].(string) != v.issuer {
-				v.log.Error("issuer claim is not as expected", zap.String("claim_name", TokenIssuerClaim), zap.String("want", v.issuer), zap.String("got", v.claims[TokenIssuerClaim].(string)))
-				return
 			}
 
 			successValidationCh <- true
@@ -111,6 +85,7 @@ func (v *OAuth2Validator) isValid(ctx context.Context) bool {
 	}
 
 	failedValidationCh := make(chan struct{})
+
 	go func() {
 		defer close(failedValidationCh)
 		wg.Wait()
@@ -128,23 +103,26 @@ func (v *OAuth2Validator) isValid(ctx context.Context) bool {
 }
 
 func (v *OAuth2Validator) ValidatedIdentity() (identityHeaders []*corev3.HeaderValueOption) {
-	var (
-		email string
-	)
 
-	if e, ok := v.claims["emails"]; ok {
-		email = e.([]interface{})[0].(string)
+	email := ""
+	if e, ok := v.claims["email"]; ok {
+		email = e.(interface{}).(string)
 	} else {
 		v.log.Info("token doesn't contain email claim")
-		email = ""
 	}
 
 	identityHeaders = append(identityHeaders, &corev3.HeaderValueOption{
 		Header: &corev3.HeaderValue{
-			Key:   "X-Forwarded-Email",
+			Key:   v.authHeaderName,
 			Value: email,
 		},
-		Append: wrapperspb.Bool(false),
+	})
+
+	identityHeaders = append(identityHeaders, &corev3.HeaderValueOption{
+		Header: &corev3.HeaderValue{
+			Key:   "foo-bar-xyz",
+			Value: "HELLO WORLD",
+		},
 	})
 
 	return

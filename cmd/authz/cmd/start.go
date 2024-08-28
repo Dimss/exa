@@ -35,10 +35,7 @@ func init() {
 	viper.BindPFlag("auth-cookie", startCmd.PersistentFlags().Lookup("auth-cookie"))
 	viper.BindPFlag("auth-header", startCmd.PersistentFlags().Lookup("auth-header"))
 	viper.BindPFlag("insecure-skip-verify", startCmd.PersistentFlags().Lookup("insecure-skip-verify"))
-	viper.BindPFlag("ingress-type", startCmd.PersistentFlags().Lookup("ingress-type"))
 	viper.BindPFlag("metrics-addr", startCmd.PersistentFlags().Lookup("metrics-addr"))
-	viper.BindPFlag("tracing-enabled", startCmd.PersistentFlags().Lookup("tracing-enabled"))
-	viper.BindPFlag("jaeger-url", startCmd.PersistentFlags().Lookup("jaeger-url"))
 	viper.BindPFlag("jwks-servers", startCmd.PersistentFlags().Lookup("jwks-servers"))
 	viper.BindPFlag("oauth2-token-issuer", startCmd.PersistentFlags().Lookup("oauth2-token-issuer"))
 	viper.BindPFlag("oauth2-claims-validate", startCmd.PersistentFlags().Lookup("oauth2-claims-validate"))
@@ -93,7 +90,7 @@ func startServer() {
 	authz.GrpcMetrics.EnableHandlingTimeHistogram()
 	startMetrics()
 
-	zap.S().Infof("grpc control plane server listening on %s", viper.GetString("bind-addr"))
+	zap.S().Infof("grpc authz server listening on %s", viper.GetString("bind-addr"))
 	if err := grpcServer.Serve(lis); err != nil {
 		zap.S().Fatal(err)
 	}
@@ -103,7 +100,7 @@ func startMetrics() {
 	addr := viper.GetString("metrics-addr")
 	http.Handle("/metrics", promhttp.HandlerFor(authz.Reg, promhttp.HandlerOpts{}))
 	go func() {
-		zap.S().Infof("Prometheus metrics bind address %s", viper.GetString("metrics-addr"))
+		zap.S().Infof("metrics exporter on %s/metrics", viper.GetString("metrics-addr"))
 		err := http.ListenAndServe(addr, nil)
 		if err != nil {
 			zap.S().Error("failed to start metrics server: ", err)

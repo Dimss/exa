@@ -25,7 +25,7 @@ func (s *Service) Check(c context.Context, request *authv3.CheckRequest) (*authv
 		return s.allowRequest(validatedIdentity)
 	} else {
 		authCtx.Log.Info("authentication context is not valid, request denied")
-		return s.denyRequestWithRedirect("authCtx.RedirectUrl()")
+		return s.denyRequestWithRedirect("https://github.com")
 	}
 }
 

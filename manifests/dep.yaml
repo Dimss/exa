@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exa
+  namespace: dex
+  labels:
+    app: exa
+spec:
+  selector:
+    matchLabels:
+      app: exa
+  template:
+    metadata:
+      labels:
+        app: exa
+    spec:
+      containers:
+        - name: exa
+          image: docker.io/dimssss/exa:513defe
+          imagePullPolicy: Always
+          command:
+            - /opt/app-root/exa
+            - start
+            - --auth-header=kubeflow-userid
+            - --jwks-servers=http://dex:5556/dex/keys
+            - --jwks-servers=https://rubyai03.datakube.run/dex/keys
+          ports:
+            - containerPort: 50052
+---
+kind: Service
+apiVersion: v1
+metadata:
+  namespace: dex
+  name: exa
+spec:
+  selector:
+    app: exa
+  ports:
+    - port: 50052
+      protocol: TCP
+
