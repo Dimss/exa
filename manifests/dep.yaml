@@ -36,7 +36,8 @@ spec:
              /opt/app-root/exa \
                start \
                --jwks-servers=https://rubyai03.datakube.run/dex/keys \
-               --auth-header=kubeflow-userid
+               --auth-header=kubeflow-userid \
+               --redirect-url=https://rubyai03.datakube.run/centralsso/dex-login
           ports:
             - containerPort: 50052
 ---

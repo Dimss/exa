@@ -20,16 +20,47 @@ import (
 )
 
 func init() {
-	startCmd.PersistentFlags().StringP("bind-addr", "b", "0.0.0.0:50052", "bind to authz server")
-	startCmd.PersistentFlags().StringP("auth-cookie", "c", "_auth", "oauth cookie name")
-	startCmd.PersistentFlags().StringP("auth-header", "", "authorization", "authentication header name")
-	startCmd.PersistentFlags().BoolP("insecure-skip-verify", "s", true, "enable=true|disable=false https verification")
-	startCmd.PersistentFlags().StringP("metrics-addr", "m", "0.0.0.0:2113", "metrics listen address")
-	startCmd.PersistentFlags().StringSlice("jwks-servers", []string{}, "list of jwks server")
-	startCmd.PersistentFlags().StringP("oauth2-token-issuer", "", "", "issuer of oauth2 token as it appears in iss claim")
-	startCmd.PersistentFlags().StringSlice("disable-validators", []string{}, fmt.Sprintf("validator types to disable - %s|%s",
-		validator.OAuthProxyType,
-		validator.OAuth2Type))
+	startCmd.PersistentFlags().StringP(
+		"bind-addr",
+		"b",
+		"0.0.0.0:50052",
+		"bind to authz server")
+	startCmd.PersistentFlags().StringP(
+		"auth-cookie",
+		"c",
+		"_auth",
+		"oauth cookie name")
+	startCmd.PersistentFlags().StringP(
+		"auth-header",
+		"",
+		"authorization",
+		"authentication header name")
+	startCmd.PersistentFlags().BoolP(
+		"insecure-skip-verify",
+		"s", true,
+		"enable=true|disable=false https verification")
+	startCmd.PersistentFlags().StringP(
+		"metrics-addr",
+		"m", "0.0.0.0:2113",
+		"metrics listen address")
+	startCmd.PersistentFlags().StringSlice(
+		"jwks-servers",
+		[]string{},
+		"list of jwks server")
+	startCmd.PersistentFlags().StringP(
+		"oauth2-token-issuer",
+		"",
+		"",
+		"issuer of oauth2 token as it appears in iss claim")
+	startCmd.PersistentFlags().StringP(
+		"redirect-url",
+		"",
+		"https://github.com",
+		"central sso redirect url, ex: https://<current-domain>/centralsso/dex-login")
+	startCmd.PersistentFlags().StringSlice(
+		"disable-validators",
+		[]string{},
+		fmt.Sprintf("validator types to disable - %s|%s", validator.OAuthProxyType, validator.OAuth2Type))
 
 	viper.BindPFlag("bind-addr", startCmd.PersistentFlags().Lookup("bind-addr"))
 	viper.BindPFlag("auth-cookie", startCmd.PersistentFlags().Lookup("auth-cookie"))

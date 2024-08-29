@@ -8,6 +8,7 @@ import (
 	authv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/gogo/googleapis/google/rpc"
+	"github.com/spf13/viper"
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 )
@@ -25,7 +26,7 @@ func (s *Service) Check(c context.Context, request *authv3.CheckRequest) (*authv
 		return s.allowRequest(validatedIdentity)
 	} else {
 		authCtx.Log.Info("authentication context is not valid, request denied")
-		return s.denyRequestWithRedirect("https://github.com")
+		return s.denyRequestWithRedirect(viper.GetString("redirect-url"))
 	}
 }
 
