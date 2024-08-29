@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: exa
-          image: docker.io/dimssss/exa:eccc841
+          image: docker.io/dimssss/exa:6b8a941
           imagePullPolicy: Always
           command:
            - /bin/bash

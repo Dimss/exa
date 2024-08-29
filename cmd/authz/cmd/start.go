@@ -71,6 +71,7 @@ func init() {
 	viper.BindPFlag("oauth2-token-issuer", startCmd.PersistentFlags().Lookup("oauth2-token-issuer"))
 	viper.BindPFlag("oauth2-claims-validate", startCmd.PersistentFlags().Lookup("oauth2-claims-validate"))
 	viper.BindPFlag("disable-validators", startCmd.PersistentFlags().Lookup("disable-validators"))
+	viper.BindPFlag("redirect-url", startCmd.PersistentFlags().Lookup("redirect-url"))
 
 	rootCmd.AddCommand(startCmd)
 }
