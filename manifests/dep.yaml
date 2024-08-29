@@ -16,14 +16,27 @@ spec:
     spec:
       containers:
         - name: exa
-          image: docker.io/dimssss/exa:513defe
+          image: docker.io/dimssss/exa:eccc841
           imagePullPolicy: Always
           command:
-            - /opt/app-root/exa
-            - start
-            - --auth-header=kubeflow-userid
-            - --jwks-servers=http://dex:5556/dex/keys
-            - --jwks-servers=https://rubyai03.datakube.run/dex/keys
+           - /bin/bash
+           - -c
+           - |
+             flagFile=/tmp/services_not_ready
+             echo true > ${flagFile}
+             while $(cat ${flagFile}); do
+               if [[ $(curl -sk localhost:15000 -o /dev/null -w '%{http_code}') != 200 ]]; then
+                 echo "[$(date)] envoy sidecar not ready yet..."
+                 sleep 1
+                 continue
+               fi
+               echo false > ${flagFile}
+             echo "[$(date)] envoy sidecar is ready, starting the exa server"
+             done
+             /opt/app-root/exa \
+               start \
+               --jwks-servers=https://rubyai03.datakube.run/dex/keys \
+               --auth-header=kubeflow-userid
           ports:
             - containerPort: 50052
 ---
@@ -36,6 +49,7 @@ spec:
   selector:
     app: exa
   ports:
-    - port: 50052
-      protocol: TCP
+    - name: grpc
+      port: 50052
+
 

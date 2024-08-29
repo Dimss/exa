@@ -66,6 +66,7 @@ func (opts *Options) initJwksKeyfuncs() {
 	transCfg := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ToDo(dimssss):  this shouldn't be here
 	}
+
 	client := &http.Client{Transport: transCfg}
 	// Create the keyfunc options. Use an error handler that logs. Refresh the JWKS when a JWT signed by an unknown KID
 	// is found or at the specified interval. Rate limit these refreshes. Timeout the initial JWKS refresh request after
