@@ -31,10 +31,15 @@ func init() {
 		"_auth",
 		"oauth cookie name")
 	startCmd.PersistentFlags().StringP(
-		"auth-header",
+		"token-src-header",
 		"",
 		"authorization",
 		"authentication header name")
+	startCmd.PersistentFlags().StringP(
+		"user-id-header",
+		"",
+		"kubeflow-userid",
+		"the header to add to the user is")
 	startCmd.PersistentFlags().BoolP(
 		"insecure-skip-verify",
 		"s", true,
@@ -64,7 +69,8 @@ func init() {
 
 	viper.BindPFlag("bind-addr", startCmd.PersistentFlags().Lookup("bind-addr"))
 	viper.BindPFlag("auth-cookie", startCmd.PersistentFlags().Lookup("auth-cookie"))
-	viper.BindPFlag("auth-header", startCmd.PersistentFlags().Lookup("auth-header"))
+	viper.BindPFlag("token-src-header", startCmd.PersistentFlags().Lookup("token-src-header"))
+	viper.BindPFlag("user-id-header", startCmd.PersistentFlags().Lookup("user-id-header"))
 	viper.BindPFlag("insecure-skip-verify", startCmd.PersistentFlags().Lookup("insecure-skip-verify"))
 	viper.BindPFlag("metrics-addr", startCmd.PersistentFlags().Lookup("metrics-addr"))
 	viper.BindPFlag("jwks-servers", startCmd.PersistentFlags().Lookup("jwks-servers"))

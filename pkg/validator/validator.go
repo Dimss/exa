@@ -7,18 +7,27 @@ import (
 	authv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"regexp"
 	"sync"
+)
+
+const (
+	OAuthProxyType = "oauthproxy"
+	OAuth2Type     = "oauth2"
+)
+
+var (
+	SkipRoutePaths = []string{ // TODO(dimss): make this parameter
+		"/centralsso/dex-login",
+		"/dex-login",
+		"/dex/*",
+	}
 )
 
 type validator interface {
 	isValid(context.Context) bool
 	ValidatedIdentity() (identityHeaders []*corev3.HeaderValueOption)
 }
-
-const (
-	OAuthProxyType = "oauthproxy"
-	OAuth2Type     = "oauth2"
-)
 
 type AuthContext struct {
 	opts    *options.Options
@@ -36,9 +45,7 @@ func (ac *AuthContext) Valid(ctx context.Context) (bool, []*corev3.HeaderValueOp
 
 	if ac.opts.OAuth2ValidatorEnabled() {
 		validators = append(validators, NewOAuth2Validator(
-			ac.opts.AuthCookie,
-			ac.opts.AuthHeader,
-			ac.opts.JwksServers,
+			ac.opts,
 			ac.request.Attributes.Request.Http.Headers,
 			ac.Log,
 		))
@@ -89,7 +96,23 @@ func (ac *AuthContext) Valid(ctx context.Context) (bool, []*corev3.HeaderValueOp
 }
 
 func (ac *AuthContext) skipAuthRoute() bool {
-	return ac.request.Attributes.Request.Http.Path == "/dex-login" // TODO(dimss): fix this!
+	for _, skipPath := range SkipRoutePaths {
+		// TODO (dimssss) load regex at load time, make the part of options struct
+		skipPathRegex, err := regexp.Compile(skipPath)
+		if err != nil {
+			ac.Log.Error(err.Error(), []zap.Field{
+				{
+					Key:    "skipPath",
+					Type:   zapcore.StringType,
+					String: skipPath,
+				}}...)
+			continue
+		}
+		if skipPathRegex.Match([]byte(ac.request.Attributes.Request.Http.Path)) {
+			return true
+		}
+	}
+	return false
 }
 
 func NewAuthContext(r *authv3.CheckRequest, opts *options.Options) *AuthContext {

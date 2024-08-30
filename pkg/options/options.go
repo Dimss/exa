@@ -17,23 +17,27 @@ const (
 
 type Options struct {
 	AuthCookie           string
-	AuthHeader           string
+	AuthTokenSrcHeader   string
+	UserIdHeader         string
 	InsecureSkipVerify   bool
 	JwksServerURLs       []string
 	Oauth2TokenIssuer    string
 	Oauth2ClaimsValidate []string
 	DisableValidators    []string
+	RedirectUrl          string
 	JwksServers          []*keyfunc.JWKS
 }
 
 func NewOptionsFromFlags() *Options {
 	opts := &Options{
 		AuthCookie:           viper.GetString("auth-cookie"),
-		AuthHeader:           viper.GetString("auth-header"),
+		AuthTokenSrcHeader:   viper.GetString("token-src-header"),
+		UserIdHeader:         viper.GetString("user-id-header"),
 		InsecureSkipVerify:   viper.GetBool("insecure-skip-verify"),
 		JwksServerURLs:       viper.GetStringSlice("jwks-servers"),
 		Oauth2ClaimsValidate: viper.GetStringSlice("oauth2-claims-validate"),
 		Oauth2TokenIssuer:    viper.GetString("oauth2-token-issuer"),
+		RedirectUrl:          viper.GetString("redirect-url"),
 		DisableValidators:    viper.GetStringSlice("disable-validators"),
 	}
 

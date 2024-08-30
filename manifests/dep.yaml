@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: exa
-          image: docker.io/dimssss/exa:6b8a941
+          image: docker.io/dimssss/exa:latest
           imagePullPolicy: Always
           command:
            - /bin/bash
@@ -35,8 +35,9 @@ spec:
              done
              /opt/app-root/exa \
                start \
-               --jwks-servers=https://rubyai03.datakube.run/dex/keys \
-               --auth-header=kubeflow-userid \
+               --jwks-servers=http://dex.dex.svc.cluster.local:5556/dex/keys \
+               --token-src-header=kubeflow-auth \
+               --user-id-header=kubeflow-userid \
                --redirect-url=https://rubyai03.datakube.run/centralsso/dex-login
           ports:
             - containerPort: 50052

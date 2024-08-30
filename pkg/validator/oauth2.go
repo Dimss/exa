@@ -2,6 +2,7 @@ package validator
 
 import (
 	"context"
+	"github.com/Dimss/exa/pkg/options"
 	"github.com/MicahParks/keyfunc"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"github.com/golang-jwt/jwt/v4"
@@ -12,9 +13,7 @@ import (
 )
 
 type OAuth2Validator struct {
-	authCookieName  string
-	authHeaderName  string
-	jwksServers     []*keyfunc.JWKS
+	opts            *options.Options
 	log             *zap.Logger
 	claims          jwt.MapClaims
 	rawIdentityData []byte
@@ -22,16 +21,12 @@ type OAuth2Validator struct {
 }
 
 func NewOAuth2Validator(
-	authCookieName string,
-	authHeaderName string,
-	jwksServers []*keyfunc.JWKS,
+	opts *options.Options,
 	requestHeaders map[string]string,
 	log *zap.Logger) *OAuth2Validator {
 
 	return &OAuth2Validator{
-		authCookieName: authCookieName,
-		authHeaderName: authHeaderName,
-		jwksServers:    jwksServers,
+		opts:           opts,
 		log:            log,
 		requestHeaders: requestHeaders,
 		claims:         jwt.MapClaims{},
@@ -39,7 +34,7 @@ func NewOAuth2Validator(
 }
 
 func (v *OAuth2Validator) shouldValidate() bool {
-	if _, ok := v.requestHeaders[v.authHeaderName]; ok {
+	if _, ok := v.requestHeaders[v.opts.AuthTokenSrcHeader]; ok {
 		return true
 	}
 	if len(v.getAuthCookie()) > 0 {
@@ -61,7 +56,7 @@ func (v *OAuth2Validator) isValid(ctx context.Context) bool {
 	b64JwtToken := v.jwtToken()
 
 	// Validate JWT on each JWKS in parallel
-	for _, jwks := range v.jwksServers {
+	for _, jwks := range v.opts.JwksServers {
 		wg.Add(1)
 		go func(jwks *keyfunc.JWKS) {
 
@@ -113,15 +108,8 @@ func (v *OAuth2Validator) ValidatedIdentity() (identityHeaders []*corev3.HeaderV
 
 	identityHeaders = append(identityHeaders, &corev3.HeaderValueOption{
 		Header: &corev3.HeaderValue{
-			Key:   v.authHeaderName,
+			Key:   v.opts.UserIdHeader,
 			Value: email,
-		},
-	})
-
-	identityHeaders = append(identityHeaders, &corev3.HeaderValueOption{
-		Header: &corev3.HeaderValue{
-			Key:   "foo-bar-xyz",
-			Value: "HELLO WORLD",
 		},
 	})
 
@@ -138,13 +126,13 @@ func (v *OAuth2Validator) jwtToken() string {
 		}
 		return token[1]
 	}
-	return strings.TrimSpace(strings.ReplaceAll(v.requestHeaders[v.authHeaderName], "Bearer", ""))
+	return strings.TrimSpace(strings.ReplaceAll(v.requestHeaders[v.opts.AuthTokenSrcHeader], "Bearer", ""))
 
 }
 
 func (v *OAuth2Validator) getAuthCookie() string {
 	for _, cookie := range strings.Split(v.requestHeaders["cookie"], ";") {
-		if strings.Contains(cookie, v.authCookieName) {
+		if strings.Contains(cookie, v.opts.AuthCookie) {
 			return cookie
 		}
 	}
