@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exa
+  namespace: dex
+  labels:
+    app: exa
+spec:
+  selector:
+    matchLabels:
+      app: exa
+  template:
+    metadata:
+      labels:
+        app: exa
+    spec:
+      containers:
+        - name: exa
+          image: docker.io/dimssss/exa:latest
+          imagePullPolicy: Always
+          command:
+           - /bin/bash
+           - -c
+           - |
+             flagFile=/tmp/services_not_ready
+             echo true > ${flagFile}
+             while $(cat ${flagFile}); do
+               if [[ $(curl -sk localhost:15000 -o /dev/null -w '%{http_code}') != 200 ]]; then
+                 echo "[$(date)] envoy sidecar not ready yet..."
+                 sleep 1
+                 continue
+               fi
+               echo false > ${flagFile}
+             echo "[$(date)] envoy sidecar is ready, starting the exa server"
+             done
+             /opt/app-root/exa \
+               start \
+               --jwks-servers=http://dex.dex.svc.cluster.local:5556/dex/keys \
+               --token-src-header=kubeflow-auth \
+               --user-id-header=kubeflow-userid \
+               --redirect-url=https://rubyai03.datakube.run/centralsso/dex-login
+          ports:
+            - containerPort: 50052
+---
+kind: Service
+apiVersion: v1
+metadata:
+  namespace: dex
+  name: exa
+spec:
+  selector:
+    app: exa
+  ports:
+    - name: grpc
+      port: 50052
+
+

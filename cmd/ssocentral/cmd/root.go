@@ -11,8 +11,8 @@ import (
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   "authz",
-		Short: "exa authz server",
+		Use:   "sso-central",
+		Short: "sso central server",
 	}
 )
 
@@ -30,7 +30,7 @@ func init() {
 func initConfig() {
 	initZapLog()
 	viper.AutomaticEnv()
-	viper.SetEnvPrefix("EXA_AUTHZ")
+	viper.SetEnvPrefix("SSO_CENTRAL")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 }
 

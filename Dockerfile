@@ -14,10 +14,16 @@ COPY cmd/ cmd/
 COPY pkg/ pkg/
 
 # Build
-RUN go build -ldflags="-X 'github.com/Dimss/exa/authz/cmd/cmd.Build=${buildsha}'" -o exa cmd/authz/main.go
+RUN go build \
+      -ldflags="-X 'github.com/Dimss/exa/authz/cmd/cmd.Build=${buildsha}'" \
+      -o exa cmd/authz/main.go
+RUN go build \
+      -ldflags="-X 'github.com/Dimss/exa/ssocentral/cmd/cmd.Build=${buildsha}'" \
+      -o ssocentral cmd/ssocentral/main.go
 
 FROM debian:bookworm-slim
 WORKDIR /opt/app-root
 RUN apt -y update \
     && apt -y install curl
 COPY --from=builder /workspace/exa .
+COPY --from=builder /workspace/ssocentral .
